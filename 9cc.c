@@ -130,7 +130,7 @@ Token *tokenize(char *p)
             p++;
             continue;
         }
- 
+
         if (strchr("+-*/()", *p))
         {
             cur = new_token(TK_RESERVED, cur, p++);
@@ -154,8 +154,14 @@ Token *tokenize(char *p)
 // 目標
 // expr    = mul ("+" mul | "-" mul)*
 // mul     = primary ("*" primary | "/" primary)*
+// unary   = ("+" | "-")? primary
 // primary = num | "(" expr ")"
 //
+
+Node *expr();
+Node *mul();
+Node *uneary();
+Node *primary();
 
 // 抽象構文木のノードの種類
 typedef enum
@@ -197,9 +203,6 @@ Node *new_node_num(int val)
     return node;
 }
 
-Node *mul();
-Node *primary();
-
 Node *expr()
 {
     Node *node = mul();
@@ -220,29 +223,38 @@ Node *expr()
     }
 }
 
-
 Node *mul()
 {
-    Node *node = primary();
+    Node *node = uneary();
     for (;;)
     {
         if (consume('*'))
         {
-            node = new_node(ND_MUL, node, primary());
+            node = new_node(ND_MUL, node, uneary());
         }
         else if (consume('/'))
         {
-            node = new_node(ND_DIV, node, primary());
+            node = new_node(ND_DIV, node, uneary());
         }
         else
             return node;
     }
 }
 
+Node *uneary()
+{
+    if (consume('+'))
+        return primary();
+    if (consume('-'))
+        return new_node(ND_SUB, new_node_num(0), primary());
+    return primary();
+}
+
 Node *primary()
 {
     // "(" expr ")" or 数値 じゃなきゃダメ！
-    if (consume('(')) {
+    if (consume('('))
+    {
         Node *node = expr();
         expect(')');
         return node;
@@ -251,8 +263,10 @@ Node *primary()
 }
 
 // アセンブリを生成する
-void gen(Node *node) {
-    if (node->kind == ND_NUM) {
+void gen(Node *node)
+{
+    if (node->kind == ND_NUM)
+    {
         printf("  push %d\n", node->val);
         return;
     }
@@ -306,7 +320,7 @@ int main(int argc, char **argv)
     // 抽象構文木からコードを生成
     // スタックトップに式全体の値が残る
     gen(node);
-    
+
     // スタックトップに式全体の値が残っているはずなので
     // それをRAXにロードして関数からの返り値とする
     printf("  pop rax\n");
