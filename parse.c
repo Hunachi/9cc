@@ -6,6 +6,42 @@ Token *token;
 // 入力プログラム
 char *user_input;
 
+// 構文解析済プログラム
+Node *code[100];
+
+// 扱いたい演算(記号)
+// == !=
+// < <= > >=
+// + -
+// * /
+// 単項+ 単項-
+// ()
+
+//
+// 構文解析
+// program    = sttmt*
+// stmt       = expr ";"
+// expr       = assign
+// assign     = equality ("=" assign)?
+// equality   = relational ("==" relational | "!=" relational)*
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// add        = mul ("+" mul | "-" mul)*
+// mul     = primary ("*" primary | "/" primary)*
+// unary   = ("+" | "-")? primary
+// primary = num | "(" expr ")"
+//
+
+void program();
+Node *stmt();
+Node *expr();
+Node *assign();
+Node *equality();
+Node *relational();
+Node *add();
+Node *mul();
+Node *unary();
+Node *primary();
+
 // エラー箇所を報告する.
 void error_at(char *loc, char *fmt, ...)
 {
@@ -35,6 +71,17 @@ bool consume(char *op)
     }
     token = token->next;
     return true;
+}
+
+Token *consume_ident()
+{
+    Token *tok = token;
+    if (token->kind != TK_IDENT)
+    {
+        return NULL;
+    }
+    token = token->next;
+    return tok;
 }
 
 // 次のトークンが期待している 記号 の場合トークンを1つ読み進め，
@@ -107,7 +154,7 @@ Token *tokenize(char *p)
             startswith(p, ">="))
         {
             cur = new_token(TK_RESERVED, cur, p, 2);
-            p+=2;
+            p += 2;
             continue;
         }
 
@@ -126,40 +173,17 @@ Token *tokenize(char *p)
             continue;
         }
 
+        if ('a' <= *p && *p <= 'z')
+        {
+            cur = new_token(TK_IDENT, cur, p++, 1);
+        }
+
         error_at(p, "トークナイズできません");
     }
 
     new_token(TK_EOF, cur, p, 0);
     return head.next;
 }
-
-// 目標
-//
-// 扱いたい演算(記号)
-// == !=
-// < <= > >=
-// + -
-// * /
-// 単項+ 単項-
-// ()
-//
-// 演算の優先順序
-// expr       = equality
-// equality   = relational ("==" relational | "!=" relational)*
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-// add        = mul ("+" mul | "-" mul)*
-// mul     = primary ("*" primary | "/" primary)*
-// unary   = ("+" | "-")? primary
-// primary = num | "(" expr ")"
-//
-
-Node *expr();
-Node *equality();
-Node *relational();
-Node *add();
-Node *mul();
-Node *unary();
-Node *primary();
 
 Node *new_node(NodeKind kind)
 {
@@ -186,10 +210,40 @@ Node *new_node_num(int val)
     return node;
 }
 
-// expr = equality
+// program = sttmt*
+void program()
+{
+    int i = 0;
+    while (!at_eof())
+    {
+        code[i++] = stmt();
+    }
+    code[i] = NULL;
+}
+
+// stmt = expr ";"
+Node *stmt()
+{
+    Node *node = expr();
+    expect(";");
+    return node;
+}
+
+// expr = assign
 Node *expr()
 {
-    return equality();
+    return assign();
+}
+
+// assign = equality ("=" assign)?
+Node *assign()
+{
+    Node *node = equality();
+    if (consume("="))
+    {
+        node = new_node_binary(ND_ASSIGN, node, assign());
+    }
+    return node;
 }
 
 // equality  = relational ("==" relational | "!=" relational)*
@@ -300,6 +354,14 @@ Node *primary()
     {
         Node *node = expr();
         expect(")");
+        return node;
+    }
+    Token *tok = consume_ident();
+    if (tok)
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR;
+        node->offset = (tok->str[0] - 'a' + 1) * 8;
         return node;
     }
     return new_node_num(expect_number());
