@@ -61,16 +61,19 @@ extern Token *token;
 // 入力プログラム
 extern char *user_input;
 
+// 構文解析済プログラム
+extern Node *code[100];
+
 // ----- util.c -----
 // エラーを報告するための関数
 // printfと同じ引数を取る
 void error(char *fmt, ...);
 
 // ----- parce.c -----
-// 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p);
+// 入力文字列 user_input をトークナイズしてそれを返す
+Token *tokenize();
 // 構文解析をしてNode型を返す
-Node *expr();
+void program();
 
 // ----- codegen.c -----
 // アセンブリを生成する

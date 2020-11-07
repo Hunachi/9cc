@@ -133,8 +133,9 @@ bool startswith(char *p, char *q)
 }
 
 // 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p)
+Token *tokenize()
 {
+    char *p = user_input;
     Token head;
     head.next = NULL;
     Token *cur = &head;
@@ -158,7 +159,7 @@ Token *tokenize(char *p)
             continue;
         }
 
-        if (strchr("+-*/()<>", *p))
+        if (strchr("+-*/()<>;=", *p))
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -176,6 +177,7 @@ Token *tokenize(char *p)
         if ('a' <= *p && *p <= 'z')
         {
             cur = new_token(TK_IDENT, cur, p++, 1);
+            continue;
         }
 
         error_at(p, "トークナイズできません");
@@ -210,7 +212,7 @@ Node *new_node_num(int val)
     return node;
 }
 
-// program = sttmt*
+// program = stmt*
 void program()
 {
     int i = 0;
