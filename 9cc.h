@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -57,59 +56,18 @@ extern Token *token;
 // 入力プログラム
 extern char *user_input;
 
+// ----- util.c -----
 // エラーを報告するための関数
 // printfと同じ引数を取る
 void error(char *fmt, ...);
 
-// エラー箇所を報告する.
-void error_at(char *loc, char *fmt, ...);
-
-// 次のトークンが期待している記号のときには、
-// トークンを1つ読み進めて真を返す。
-// それ以外の場合には偽を返す。
-bool consume(char *op);
-
-// 次のトークンが期待している 記号 の場合トークンを1つ読み進め，
-// それ以外の場合にはエラーになる
-void expect(char *op);
-
-// 次のトークンが 数値 の場合トークンを1つ読み進めてその数値を返す．
-// それ以外の場合にはエラーになる
-int expect_number();
-
-// 新しいトークンを作成して cur につなげる
-Token *new_token(TokenKind kind, Token *cur, char *str, int len);
-
-bool startswith(char *p, char *q);
-
+// ----- parce.c -----
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p);
-
-// ノードの型だけ指定されたノードを作る
-Node *new_node(NodeKind kind);
-
-// 数値用のノードを作る
-Node *new_node_num(int val);
-
-// 2項演算子用
-Node *new_node_binary(NodeKind kind, Node *lhs, Node *rhs);
-
-// 構文解析用の関数
-// expr = equality
+// 構文解析をしてNode型を返す
 Node *expr();
-// equality  = relational ("==" relational | "!=" relational)*
-Node *equality();
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-Node *relational();
-// add = mul ("+" mul | "-" mul)*
-Node *add();
-// mul = primary ("*" primary | "/" primary)*
-Node *mul();
-// unary   = ("+" | "-")? primary
-Node *unary();
-// primary = num | "(" expr ")"
-Node *primary();
 
+// ----- codegen.c -----
 // アセンブリを生成する
 void gen(Node *node);
 
