@@ -9,6 +9,9 @@ char *user_input;
 // 構文解析済プログラム
 Node *code[100];
 
+// ローカル変数
+LVar *locals;
+
 // 扱いたい演算(記号)
 // == !=
 // < <= > >=
@@ -132,6 +135,19 @@ bool startswith(char *p, char *q)
     return memcmp(p, q, strlen(q)) == 0;
 }
 
+// 変数を名前で検索する．見つからなかった場合はNULLを返す．
+LVar *find_lvar(Token *tok)
+{
+    for (LVar *var = locals; var; var = var->next)
+    {
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+        {
+            return var;
+        }
+    }
+    return NULL;
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize()
 {
@@ -161,7 +177,8 @@ Token *tokenize()
 
         if (strchr("+-*/()<>;=", *p))
         {
-            cur = new_token(TK_RESERVED, cur, p++, 1);
+            cur = new_token(TK_RESERVED, cur, p, 1);
+            p++;
             continue;
         }
 
@@ -171,12 +188,35 @@ Token *tokenize()
             char *q = p;
             cur->val = strtol(p, &p, 10);
             cur->len > p - q;
+            p+=cur->len;
             continue;
         }
 
-        if ('a' <= *p && *p <= 'z')
+        int local_var_count = 0;
+        bool is_ident = false;
+        while (true)
         {
-            cur = new_token(TK_IDENT, cur, p++, 1);
+            if (*p && (('a' <= *p && *p <= 'z')))
+            {
+                local_var_count++;
+                p++;
+            }
+            else
+            {
+                is_ident = true;
+                cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+                local_var_count = 0;
+                break;
+            }
+        }
+        if (local_var_count)
+        {
+            is_ident = true;
+            cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+            local_var_count = 0;
+        }
+        if (is_ident)
+        {
             continue;
         }
 
@@ -363,7 +403,27 @@ Node *primary()
     {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
-        node->offset = (tok->str[0] - 'a' + 1) * 8;
+
+        LVar *lvar = find_lvar(tok);
+        if (lvar)
+        {
+            // 変数がすでに存在する場合
+            node->offset = lvar->offset;
+        }
+        else
+        {
+            // 変数が存在しなかった場合
+            lvar = calloc(1, sizeof(LVar));
+            lvar->len = tok->len;
+            lvar->name = tok->str;
+            if (locals)
+            {
+                lvar->next = locals;
+                lvar->offset = locals->offset + 8;
+            }
+            node->offset = lvar->offset;
+            locals = lvar;
+        }
         return node;
     }
     return new_node_num(expect_number());

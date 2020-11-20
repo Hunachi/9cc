@@ -42,6 +42,15 @@ typedef enum
 
 } NodeKind;
 
+// ローカル変数の型
+typedef struct LVar LVar;
+struct LVar {
+  LVar *next; // 次の変数かNULL
+  char *name; // 変数の名前
+  int len;    // 名前の長さ
+  int offset; // RBPからのオフセット
+};
+
 // 抽象構文木のノードの型
 typedef struct Node Node;
 struct Node
@@ -64,6 +73,9 @@ extern char *user_input;
 // 構文解析済プログラム
 extern Node *code[100];
 
+// ローカル変数
+extern LVar *locals;
+
 // ----- util.c -----
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -72,7 +84,7 @@ void error(char *fmt, ...);
 // ----- parce.c -----
 // 入力文字列 user_input をトークナイズしてそれを返す
 Token *tokenize();
-// 構文解析をしてNode型を返す
+// 構文解析をする
 void program();
 
 // ----- codegen.c -----
