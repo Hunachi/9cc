@@ -5,3 +5,4 @@ tmp*
 a.out
 9cc
 .vscode
+tmp.s

@@ -6,6 +6,45 @@ Token *token;
 // 入力プログラム
 char *user_input;
 
+// 構文解析済プログラム
+Node *code[100];
+
+// ローカル変数
+LVar *locals;
+
+// 扱いたい演算(記号)
+// == !=
+// < <= > >=
+// + -
+// * /
+// 単項+ 単項-
+// ()
+
+//
+// 構文解析
+// program    = sttmt*
+// stmt       = expr ";"
+// expr       = assign
+// assign     = equality ("=" assign)?
+// equality   = relational ("==" relational | "!=" relational)*
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// add        = mul ("+" mul | "-" mul)*
+// mul     = primary ("*" primary | "/" primary)*
+// unary   = ("+" | "-")? primary
+// primary = num | "(" expr ")"
+//
+
+void program();
+Node *stmt();
+Node *expr();
+Node *assign();
+Node *equality();
+Node *relational();
+Node *add();
+Node *mul();
+Node *unary();
+Node *primary();
+
 // エラー箇所を報告する.
 void error_at(char *loc, char *fmt, ...)
 {
@@ -35,6 +74,17 @@ bool consume(char *op)
     }
     token = token->next;
     return true;
+}
+
+Token *consume_ident()
+{
+    Token *tok = token;
+    if (token->kind != TK_IDENT)
+    {
+        return NULL;
+    }
+    token = token->next;
+    return tok;
 }
 
 // 次のトークンが期待している 記号 の場合トークンを1つ読み進め，
@@ -85,9 +135,23 @@ bool startswith(char *p, char *q)
     return memcmp(p, q, strlen(q)) == 0;
 }
 
-// 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p)
+// 変数を名前で検索する．見つからなかった場合はNULLを返す．
+LVar *find_lvar(Token *tok)
 {
+    for (LVar *var = locals; var; var = var->next)
+    {
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+        {
+            return var;
+        }
+    }
+    return NULL;
+}
+
+// 入力文字列pをトークナイズしてそれを返す
+Token *tokenize()
+{
+    char *p = user_input;
     Token head;
     head.next = NULL;
     Token *cur = &head;
@@ -107,13 +171,14 @@ Token *tokenize(char *p)
             startswith(p, ">="))
         {
             cur = new_token(TK_RESERVED, cur, p, 2);
-            p+=2;
+            p += 2;
             continue;
         }
 
-        if (strchr("+-*/()<>", *p))
+        if (strchr("+-*/()<>;=", *p))
         {
-            cur = new_token(TK_RESERVED, cur, p++, 1);
+            cur = new_token(TK_RESERVED, cur, p, 1);
+            p++;
             continue;
         }
 
@@ -123,6 +188,35 @@ Token *tokenize(char *p)
             char *q = p;
             cur->val = strtol(p, &p, 10);
             cur->len > p - q;
+            p+=cur->len;
+            continue;
+        }
+
+        int local_var_count = 0;
+        bool is_ident = false;
+        while (true)
+        {
+            if (*p && (('a' <= *p && *p <= 'z')))
+            {
+                local_var_count++;
+                p++;
+            }
+            else
+            {
+                is_ident = true;
+                cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+                local_var_count = 0;
+                break;
+            }
+        }
+        if (local_var_count)
+        {
+            is_ident = true;
+            cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+            local_var_count = 0;
+        }
+        if (is_ident)
+        {
             continue;
         }
 
@@ -132,34 +226,6 @@ Token *tokenize(char *p)
     new_token(TK_EOF, cur, p, 0);
     return head.next;
 }
-
-// 目標
-//
-// 扱いたい演算(記号)
-// == !=
-// < <= > >=
-// + -
-// * /
-// 単項+ 単項-
-// ()
-//
-// 演算の優先順序
-// expr       = equality
-// equality   = relational ("==" relational | "!=" relational)*
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-// add        = mul ("+" mul | "-" mul)*
-// mul     = primary ("*" primary | "/" primary)*
-// unary   = ("+" | "-")? primary
-// primary = num | "(" expr ")"
-//
-
-Node *expr();
-Node *equality();
-Node *relational();
-Node *add();
-Node *mul();
-Node *unary();
-Node *primary();
 
 Node *new_node(NodeKind kind)
 {
@@ -186,10 +252,40 @@ Node *new_node_num(int val)
     return node;
 }
 
-// expr = equality
+// program = stmt*
+void program()
+{
+    int i = 0;
+    while (!at_eof())
+    {
+        code[i++] = stmt();
+    }
+    code[i] = NULL;
+}
+
+// stmt = expr ";"
+Node *stmt()
+{
+    Node *node = expr();
+    expect(";");
+    return node;
+}
+
+// expr = assign
 Node *expr()
 {
-    return equality();
+    return assign();
+}
+
+// assign = equality ("=" assign)?
+Node *assign()
+{
+    Node *node = equality();
+    if (consume("="))
+    {
+        node = new_node_binary(ND_ASSIGN, node, assign());
+    }
+    return node;
 }
 
 // equality  = relational ("==" relational | "!=" relational)*
@@ -300,6 +396,34 @@ Node *primary()
     {
         Node *node = expr();
         expect(")");
+        return node;
+    }
+    Token *tok = consume_ident();
+    if (tok)
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR;
+
+        LVar *lvar = find_lvar(tok);
+        if (lvar)
+        {
+            // 変数がすでに存在する場合
+            node->offset = lvar->offset;
+        }
+        else
+        {
+            // 変数が存在しなかった場合
+            lvar = calloc(1, sizeof(LVar));
+            lvar->len = tok->len;
+            lvar->name = tok->str;
+            if (locals)
+            {
+                lvar->next = locals;
+                lvar->offset = locals->offset + 8;
+            }
+            node->offset = lvar->offset;
+            locals = lvar;
+        }
         return node;
     }
     return new_node_num(expect_number());
