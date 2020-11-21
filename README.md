@@ -2,10 +2,6 @@
 
 c compiler 参照： [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook)
 
-## 使える変数の型
-
-- int
-
 ## 実装済みの機能
 
 - 四則演算
