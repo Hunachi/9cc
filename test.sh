@@ -16,6 +16,17 @@ assert() {
   fi
 }
 
+assert 5 "if(0 == 1) return 3; else return 5;"
+
+assert 6 "aa=3;aa+3;"
+assert 3 "aa=3;"
+assert 4 "a=3;b=3;if(a == b) return (b+1);"
+assert 3 "a=2;b=1;a+b;"
+assert 3 "aa=2;b=1;aa+b;"
+assert 4 "a=3;a1=3;a1+1;"
+assert 4 "aa=3;bbb=3;if(aa == bbb) return (bbb+1);"
+assert 3 "if(1 != 0) return 3;"
+
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"
@@ -46,5 +57,8 @@ assert 1 "abc=3;bcd=2;abc>bcd;"
 assert 0 "a=2*(2+3);d=5-1;a==d;"
 assert 0 "aa=3;bb=2;aa<bb;"
 assert 1 "a=3;b=2;a>b;"
+assert 3 "a=3;b=2;a>b;return a;"
+assert 2 "return (1+1);"
+assert 10 "return 10;"
 
 echo OK

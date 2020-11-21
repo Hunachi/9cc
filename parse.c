@@ -22,8 +22,11 @@ LVar *locals;
 
 //
 // 構文解析
-// program    = sttmt*
-// stmt       = expr ";"
+// program    = stmt*
+// stmt       = expr ";" | "return" expr ";"
+//                | "if" "(" expr ")" stmt ("else" stmt)?
+//                | "while" "(" expr ")" stmt
+//                | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -60,60 +63,6 @@ void error_at(char *loc, char *fmt, ...)
     exit(1);
 }
 
-// 次のトークンが期待している記号のときには、
-// トークンを1つ読み進めて真を返す。
-// それ以外の場合には偽を返す。
-bool consume(char *op)
-{
-    if (
-        token->kind != TK_RESERVED ||
-        strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-    {
-        return false;
-    }
-    token = token->next;
-    return true;
-}
-
-Token *consume_ident()
-{
-    Token *tok = token;
-    if (token->kind != TK_IDENT)
-    {
-        return NULL;
-    }
-    token = token->next;
-    return tok;
-}
-
-// 次のトークンが期待している 記号 の場合トークンを1つ読み進め，
-// それ以外の場合にはエラーになる
-void expect(char *op)
-{
-    if (
-        token->kind != TK_RESERVED ||
-        token->len != strlen(op) ||
-        memcmp(token->str, op, token->len))
-    {
-        error_at(token->str, "'%s'ではありません", op);
-    }
-    token = token->next;
-}
-
-// 次のトークンが 数値 の場合トークンを1つ読み進めてその数値を返す．
-// それ以外の場合にはエラーになる
-int expect_number()
-{
-    if (token->kind != TK_NUM)
-    {
-        error_at(token->str, "数ではありません");
-    }
-    int val = token->val;
-    token = token->next;
-    return val;
-}
-
 bool at_eof()
 {
     return token->kind == TK_EOF;
@@ -148,6 +97,14 @@ LVar *find_lvar(Token *tok)
     return NULL;
 }
 
+int is_alnum(char c)
+{
+    return ('a' <= c && c <= 'z') ||
+           ('A' <= c && c <= 'Z') ||
+           ('0' <= c && c <= '9') ||
+           (c == '_');
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize()
 {
@@ -175,7 +132,7 @@ Token *tokenize()
             continue;
         }
 
-        if (strchr("+-*/()<>;=", *p))
+        if (strchr("+-*/()<>=;", *p))
         {
             cur = new_token(TK_RESERVED, cur, p, 1);
             p++;
@@ -188,15 +145,37 @@ Token *tokenize()
             char *q = p;
             cur->val = strtol(p, &p, 10);
             cur->len > p - q;
-            p+=cur->len;
+            p += cur->len;
+            continue;
+        }
+
+        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6]))
+        {
+            cur = new_token(TK_RETURN, cur, p, 6);
+            p += 6;
+            continue;
+        }
+
+        if (strncmp(p, "if", 2) == 0)
+        {
+            cur = new_token(TK_IF, cur, p, 2);
+            p += 2;
+            continue;
+        }
+
+        if (strncmp(p, "else", 4) == 0)
+        {
+            cur = new_token(TK_ELSE, cur, p, 4);
+            p += 4;
             continue;
         }
 
         int local_var_count = 0;
         bool is_ident = false;
+        char *hp = p;
         while (true)
         {
-            if (*p && (('a' <= *p && *p <= 'z')))
+            if (*p && is_alnum(*p))
             {
                 local_var_count++;
                 p++;
@@ -204,16 +183,10 @@ Token *tokenize()
             else
             {
                 is_ident = true;
-                cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+                cur = new_token(TK_IDENT, cur, hp, local_var_count);
                 local_var_count = 0;
                 break;
             }
-        }
-        if (local_var_count)
-        {
-            is_ident = true;
-            cur = new_token(TK_IDENT, cur, p-1, local_var_count);
-            local_var_count = 0;
         }
         if (is_ident)
         {
@@ -243,13 +216,67 @@ Node *new_node_binary(NodeKind kind, Node *lhs, Node *rhs)
     return node;
 }
 
-// 1項演算子用
+// 数字用
 Node *new_node_num(int val)
 {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_NUM;
     node->val = val;
     return node;
+}
+
+// 次のトークンが期待している記号のときには、
+// トークンを1つ読み進めて真を返す。
+// それ以外の場合には偽を返す。
+bool consume(char *op)
+{
+    if (
+        token->kind != TK_RESERVED ||
+        strlen(op) != token->len ||
+        memcmp(token->str, op, token->len))
+    {
+        return false;
+    }
+    token = token->next;
+    return true;
+}
+
+Token *consume_tk(TokenKind tk)
+{
+    Token *tok = token;
+    if (token->kind != tk)
+    {
+        return NULL;
+    }
+    token = token->next;
+    return tok;
+}
+
+// 次のトークンが期待している 記号 の場合トークンを1つ読み進め，
+// それ以外の場合にはエラーになる
+void expect(char *op)
+{
+    if (
+        token->kind != TK_RESERVED ||
+        token->len != strlen(op) ||
+        memcmp(token->str, op, token->len))
+    {
+        error_at(token->str, "'%s'ではありません", op);
+    }
+    token = token->next;
+}
+
+// 次のトークンが 数値 の場合トークンを1つ読み進めてその数値を返す．
+// それ以外の場合にはエラーになる
+int expect_number()
+{
+    if (token->kind != TK_NUM)
+    {
+        error_at(token->str, "数ではありません");
+    }
+    int val = token->val;
+    token = token->next;
+    return val;
 }
 
 // program = stmt*
@@ -263,11 +290,37 @@ void program()
     code[i] = NULL;
 }
 
-// stmt = expr ";"
+// stmt = expr ";" | return expr ";" | "if" "(" expr ")" stmt ("else" stmt)?
 Node *stmt()
 {
-    Node *node = expr();
-    expect(";");
+    Node *node;
+    if (consume_tk(TK_RETURN))
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_RETURN;
+        node->rhs = expr();
+    }
+    else if (consume_tk(TK_IF))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_IF;
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
+        if (consume_tk(TK_ELSE)) {
+            node->els = stmt();
+        }
+        return node;
+    }
+    else
+    {
+        node = expr();
+    }
+    if (!consume(";"))
+    {
+        error_at(token->str, "';'ではないトークンです");
+    }
     return node;
 }
 
@@ -398,7 +451,7 @@ Node *primary()
         expect(")");
         return node;
     }
-    Token *tok = consume_ident();
+    Token *tok = consume_tk(TK_IDENT);
     if (tok)
     {
         Node *node = calloc(1, sizeof(Node));
