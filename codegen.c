@@ -1,7 +1,15 @@
 #include "9cc.h"
 
-void gen_lval(Node *node){
-    if (node->kind != ND_LVAR){
+static int count()
+{
+    static int i = 1;
+    return i++;
+}
+
+void gen_lval(Node *node)
+{
+    if (node->kind != ND_LVAR)
+    {
         error("代入の左辺値が変数ではありません");
     }
     printf("  mov rax, rbp\n");
@@ -38,6 +46,17 @@ void gen(Node *node)
         printf("  pop rbp\n");
         printf("  ret\n");
         return;
+    case ND_IF:
+    {
+        int c = count();
+        gen(node->com);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je .Lend.if.%d\n", c);
+        gen(node->then);
+        printf(".Lend.if.%d:\n", c);
+        return;
+    }
     }
 
     gen(node->lhs);

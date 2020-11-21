@@ -12,7 +12,8 @@ typedef enum
     TK_NUM,      // 整数トークン
     TK_IDENT,    // 識別子
     TK_EOF,      // 入力の終わりを表すトークン
-    TK_RETURN    // リターン
+    TK_RETURN,   // リターン
+    TK_IF        // if
 } TokenKind;
 
 // トークン
@@ -40,16 +41,19 @@ typedef enum
     ND_LE,     // <=
     ND_LVAR,   // ローカル変数
     ND_NUM,    // 整数(Integer)
-    ND_RETURN  // return
+    ND_RETURN, // return
+    ND_IF,     // if
+    ND_ELSE,   // else
 } NodeKind;
 
 // ローカル変数の型
 typedef struct LVar LVar;
-struct LVar {
-  LVar *next; // 次の変数かNULL
-  char *name; // 変数の名前
-  int len;    // 名前の長さ
-  int offset; // RBPからのオフセット
+struct LVar
+{
+    LVar *next; // 次の変数かNULL
+    char *name; // 変数の名前
+    int len;    // 名前の長さ
+    int offset; // RBPからのオフセット
 };
 
 // 抽象構文木のノードの型
@@ -57,8 +61,14 @@ typedef struct Node Node;
 struct Node
 {
     NodeKind kind; // ノードの型
+
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
+
+    // if用
+    Node *com;     // 
+    Node *then;    // 
+
     int val;       // kindがND_NUMの場合にのみ使う
     int offset;    // kindがND_LVARの場合のみ使う
     char *str;     // トークンの文字列

@@ -156,8 +156,16 @@ Token *tokenize()
             continue;
         }
 
+        if (strncmp(p, "if", 2) == 0)
+        {
+            cur = new_token(TK_IF, cur, p, 2);
+            p += 2;
+            continue;
+        }
+
         int local_var_count = 0;
         bool is_ident = false;
+        char *hp = p;
         while (true)
         {
             if (*p && is_alnum(*p))
@@ -168,16 +176,10 @@ Token *tokenize()
             else
             {
                 is_ident = true;
-                cur = new_token(TK_IDENT, cur, p - 1, local_var_count);
+                cur = new_token(TK_IDENT, cur, hp, local_var_count);
                 local_var_count = 0;
                 break;
             }
-        }
-        if (local_var_count)
-        {
-            is_ident = true;
-            cur = new_token(TK_IDENT, cur, p - 1, local_var_count);
-            local_var_count = 0;
         }
         if (is_ident)
         {
@@ -216,7 +218,6 @@ Node *new_node_num(int val)
     return node;
 }
 
-
 // 次のトークンが期待している記号のときには、
 // トークンを1つ読み進めて真を返す。
 // それ以外の場合には偽を返す。
@@ -247,7 +248,19 @@ Token *consume_ident()
 Token *consume_return()
 {
     Token *tok = token;
-    if (token->kind != TK_RETURN) {
+    if (token->kind != TK_RETURN)
+    {
+        return NULL;
+    }
+    token = token->next;
+    return tok;
+}
+
+Token *consume_if()
+{
+    Token *tok = token;
+    if (token->kind != TK_IF)
+    {
         return NULL;
     }
     token = token->next;
@@ -292,7 +305,7 @@ void program()
     code[i] = NULL;
 }
 
-// stmt = expr ";" | return expr ";"
+// stmt = expr ";" | return expr ";" | "if" "(" expr ")" stmt
 Node *stmt()
 {
     Node *node;
@@ -301,6 +314,16 @@ Node *stmt()
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->rhs = expr();
+    }
+    else if (consume_if())
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_IF;
+        expect("(");
+        node->com = expr();
+        expect(")");
+        node->then = stmt();
+        return node;
     }
     else
     {
