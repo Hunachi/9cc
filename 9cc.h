@@ -13,7 +13,8 @@ typedef enum
     TK_IDENT,    // 識別子
     TK_EOF,      // 入力の終わりを表すトークン
     TK_RETURN,   // リターン
-    TK_IF        // if
+    TK_IF,       // if
+    TK_ELSE,     // else
 } TokenKind;
 
 // トークン
@@ -62,17 +63,18 @@ struct Node
 {
     NodeKind kind; // ノードの型
 
-    Node *lhs;     // 左辺
-    Node *rhs;     // 右辺
+    Node *lhs; // 左辺
+    Node *rhs; // 右辺
 
-    // if用
-    Node *com;     // 
-    Node *then;    // 
+    // if else用
+    Node *cond;
+    Node *then;
+    Node *els;
 
-    int val;       // kindがND_NUMの場合にのみ使う
-    int offset;    // kindがND_LVARの場合のみ使う
-    char *str;     // トークンの文字列
-    int len;       // トークンの長さ
+    int val;    // kindがND_NUMの場合にのみ使う
+    int offset; // kindがND_LVARの場合のみ使う
+    char *str;  // トークンの文字列
+    int len;    // トークンの長さ
 };
 
 // 今みているトークン

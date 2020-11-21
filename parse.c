@@ -163,6 +163,13 @@ Token *tokenize()
             continue;
         }
 
+        if (strncmp(p, "else", 4) == 0)
+        {
+            cur = new_token(TK_ELSE, cur, p, 4);
+            p += 4;
+            continue;
+        }
+
         int local_var_count = 0;
         bool is_ident = false;
         char *hp = p;
@@ -298,9 +305,12 @@ Node *stmt()
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_IF;
         expect("(");
-        node->com = expr();
+        node->cond = expr();
         expect(")");
         node->then = stmt();
+        if (consume_tk(TK_ELSE)) {
+            node->els = stmt();
+        }
         return node;
     }
     else
