@@ -22,8 +22,8 @@ LVar *locals;
 
 //
 // 構文解析
-// program    = sttmt*
-// stmt       = expr ";"
+// program    = stmt*
+// stmt       = expr ";" | "return" expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -81,6 +81,16 @@ Token *consume_ident()
     Token *tok = token;
     if (token->kind != TK_IDENT)
     {
+        return NULL;
+    }
+    token = token->next;
+    return tok;
+}
+
+Token *consume_return()
+{
+    Token *tok = token;
+    if (token->kind != TK_RETURN) {
         return NULL;
     }
     token = token->next;
@@ -148,6 +158,14 @@ LVar *find_lvar(Token *tok)
     return NULL;
 }
 
+int is_alnum(char c)
+{
+    return ('a' <= c && c <= 'z') ||
+           ('A' <= c && c <= 'Z') ||
+           ('0' <= c && c <= '9') ||
+           (c == '_');
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize()
 {
@@ -175,7 +193,7 @@ Token *tokenize()
             continue;
         }
 
-        if (strchr("+-*/()<>;=", *p))
+        if (strchr("+-*/()<>=;", *p))
         {
             cur = new_token(TK_RESERVED, cur, p, 1);
             p++;
@@ -188,7 +206,14 @@ Token *tokenize()
             char *q = p;
             cur->val = strtol(p, &p, 10);
             cur->len > p - q;
-            p+=cur->len;
+            p += cur->len;
+            continue;
+        }
+
+        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6]))
+        {
+            cur = new_token(TK_RETURN, cur, p, 6);
+            p += 6;
             continue;
         }
 
@@ -196,7 +221,7 @@ Token *tokenize()
         bool is_ident = false;
         while (true)
         {
-            if (*p && (('a' <= *p && *p <= 'z')))
+            if (*p && is_alnum(*p))
             {
                 local_var_count++;
                 p++;
@@ -204,7 +229,7 @@ Token *tokenize()
             else
             {
                 is_ident = true;
-                cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+                cur = new_token(TK_IDENT, cur, p - 1, local_var_count);
                 local_var_count = 0;
                 break;
             }
@@ -212,7 +237,7 @@ Token *tokenize()
         if (local_var_count)
         {
             is_ident = true;
-            cur = new_token(TK_IDENT, cur, p-1, local_var_count);
+            cur = new_token(TK_IDENT, cur, p - 1, local_var_count);
             local_var_count = 0;
         }
         if (is_ident)
@@ -243,7 +268,7 @@ Node *new_node_binary(NodeKind kind, Node *lhs, Node *rhs)
     return node;
 }
 
-// 1項演算子用
+// 数字用
 Node *new_node_num(int val)
 {
     Node *node = calloc(1, sizeof(Node));
@@ -263,11 +288,24 @@ void program()
     code[i] = NULL;
 }
 
-// stmt = expr ";"
+// stmt = expr ";" | return expr ";"
 Node *stmt()
 {
-    Node *node = expr();
-    expect(";");
+    Node *node;
+    if (consume_return())
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_RETURN;
+        node->rhs = expr();
+    }
+    else
+    {
+        node = expr();
+    }
+    if (!consume(";"))
+    {
+        error_at(token->str, "';'ではないトークンです");
+    }
     return node;
 }
 

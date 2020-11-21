@@ -46,5 +46,8 @@ assert 1 "abc=3;bcd=2;abc>bcd;"
 assert 0 "a=2*(2+3);d=5-1;a==d;"
 assert 0 "aa=3;bb=2;aa<bb;"
 assert 1 "a=3;b=2;a>b;"
+assert 3 "a=3;b=2;a>b;return a;"
+assert 2 "return (1+1);"
+assert 10 "return 10;"
 
 echo OK

@@ -12,6 +12,7 @@ typedef enum
     TK_NUM,      // 整数トークン
     TK_IDENT,    // 識別子
     TK_EOF,      // 入力の終わりを表すトークン
+    TK_RETURN    // リターン
 } TokenKind;
 
 // トークン
@@ -39,7 +40,7 @@ typedef enum
     ND_LE,     // <=
     ND_LVAR,   // ローカル変数
     ND_NUM,    // 整数(Integer)
-
+    ND_RETURN  // return
 } NodeKind;
 
 // ローカル変数の型
