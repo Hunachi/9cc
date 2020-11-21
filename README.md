@@ -1,6 +1,6 @@
 # 9cc 
 
-c compiler referring to [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook)
+c compiler 参照： [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook)
 
 ## 使える変数の型
 
