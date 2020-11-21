@@ -234,32 +234,10 @@ bool consume(char *op)
     return true;
 }
 
-Token *consume_ident()
+Token *consume_tk(TokenKind tk)
 {
     Token *tok = token;
-    if (token->kind != TK_IDENT)
-    {
-        return NULL;
-    }
-    token = token->next;
-    return tok;
-}
-
-Token *consume_return()
-{
-    Token *tok = token;
-    if (token->kind != TK_RETURN)
-    {
-        return NULL;
-    }
-    token = token->next;
-    return tok;
-}
-
-Token *consume_if()
-{
-    Token *tok = token;
-    if (token->kind != TK_IF)
+    if (token->kind != tk)
     {
         return NULL;
     }
@@ -305,17 +283,17 @@ void program()
     code[i] = NULL;
 }
 
-// stmt = expr ";" | return expr ";" | "if" "(" expr ")" stmt
+// stmt = expr ";" | return expr ";" | "if" "(" expr ")" stmt ("else" stmt)?
 Node *stmt()
 {
     Node *node;
-    if (consume_return())
+    if (consume_tk(TK_RETURN))
     {
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->rhs = expr();
     }
-    else if (consume_if())
+    else if (consume_tk(TK_IF))
     {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_IF;
@@ -463,7 +441,7 @@ Node *primary()
         expect(")");
         return node;
     }
-    Token *tok = consume_ident();
+    Token *tok = consume_tk(TK_IDENT);
     if (tok)
     {
         Node *node = calloc(1, sizeof(Node));
