@@ -16,6 +16,8 @@ assert() {
   fi
 }
 
+assert 5 "i=1;while(i<5)i=i+1;return i;"
+
 assert 5 "if(0 == 1) return 3; else return 5;"
 
 assert 6 "aa=3;aa+3;"
