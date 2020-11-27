@@ -49,6 +49,7 @@ typedef enum
     ND_ELSE,   // else
     ND_WHILE,  // while
     ND_FOR,    // for
+    ND_BLOCK   // block
 } NodeKind;
 
 // ローカル変数の型
@@ -74,9 +75,13 @@ struct Node
     Node *cond;
     Node *then;
     Node *els;
+
     // for (A;B;C) のAとC用
     Node *fhs;
     Node *ehs;
+
+    // block 用
+    Node *body;
 
     int val;    // kindがND_NUMの場合にのみ使う
     int offset; // kindがND_LVARの場合のみ使う

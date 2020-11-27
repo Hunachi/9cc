@@ -104,6 +104,15 @@ void gen(Node *node)
         printf(".Lend.%d:\n", c);
         return;
     }
+    case ND_BLOCK: {
+        Node *_body = node->body;
+        while (_body != NULL)
+        {
+            gen(_body);
+            _body = _body->body;
+        }
+        return;
+    }
     }
 
     gen(node->lhs);

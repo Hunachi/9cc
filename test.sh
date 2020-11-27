@@ -16,6 +16,11 @@ assert() {
   fi
 }
 
+assert 16 "i=1;hoge=1;while(i<5){i=i+1;hoge=hoge*2;}return hoge;"
+
+assert 10 "ho=0;for(i=0;i<5;){ho=ho+i; i=i+1;}return ho;"
+assert 3 "ho=0;for(i=0;i<5;i=i+1){ho=ho+1; i=i+1;}return ho;"
+
 assert 5 "ho=0;for(i=0;i<5;i=i+1)ho=ho+1;return ho;"
 assert 11 "ho=1;for(i=0;i<5;i=i+1)ho=ho+i;return ho;"
 

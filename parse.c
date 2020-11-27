@@ -132,7 +132,7 @@ Token *tokenize()
             continue;
         }
 
-        if (strchr("+-*/()<>=;", *p))
+        if (strchr("+-*/()<>=;{}", *p))
         {
             cur = new_token(TK_RESERVED, cur, p, 1);
             p++;
@@ -255,6 +255,18 @@ bool consume(char *op)
     return true;
 }
 
+bool consume_body(char *op, Node* _token)
+{
+    if (
+        _token->kind != TK_RESERVED ||
+        strlen(op) != _token->len ||
+        memcmp(_token->str, op, _token->len))
+    {
+        return NULL;
+    }
+    return _token->body;
+}
+
 Token *consume_tk(TokenKind tk)
 {
     Token *tok = token;
@@ -347,13 +359,31 @@ Node *stmt()
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_FOR;
         expect("(");
-        node->fhs = expr();
-        expect(";");
-        node->cond = expr();
-        expect(";");
-        node->ehs = expr();
-        expect(")");
+        if(!consume(";")){
+            node->fhs = expr();
+            expect(";");
+        }
+        if(!consume(";")){
+            node->cond = expr();
+            expect(";");
+        }
+        if(!consume(")")){
+            node->ehs = expr();
+            expect(")");
+        }
         node->then = stmt();
+        return node;
+    }
+    else if (consume("{"))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_BLOCK;
+        Node *_node = node;
+        while (!consume("}"))
+        {
+            _node->body = stmt();
+            _node = _node->body;
+        }
         return node;
     }
     else
