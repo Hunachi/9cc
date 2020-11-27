@@ -170,6 +170,20 @@ Token *tokenize()
             continue;
         }
 
+        if (strncmp(p, "while", 5) == 0)
+        {
+            cur = new_token(TK_WHILE, cur, p, 5);
+            p += 5;
+            continue;
+        }
+
+        if (strncmp(p, "for", 3) == 0)
+        {
+            cur = new_token(TK_FOR, cur, p, 3);
+            p += 3;
+            continue;
+        }
+
         int local_var_count = 0;
         bool is_ident = false;
         char *hp = p;
@@ -290,7 +304,11 @@ void program()
     code[i] = NULL;
 }
 
-// stmt = expr ";" | return expr ";" | "if" "(" expr ")" stmt ("else" stmt)?
+// stmt = expr ";" | return expr ";" |
+// "{" stmt "}"|
+// "if" "(" expr ")" stmt ("else" stmt)? |
+// "while" "(" expr ")" stmt |
+// "for" "(" expr? ";" expr? ";" expr? ")" stmt
 Node *stmt()
 {
     Node *node;
@@ -308,9 +326,34 @@ Node *stmt()
         node->cond = expr();
         expect(")");
         node->then = stmt();
-        if (consume_tk(TK_ELSE)) {
+        if (consume_tk(TK_ELSE))
+        {
             node->els = stmt();
         }
+        return node;
+    }
+    else if (consume_tk(TK_WHILE))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_WHILE;
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
+        return node;
+    }
+    else if (consume_tk(TK_FOR))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_FOR;
+        expect("(");
+        node->fhs = expr();
+        expect(";");
+        node->cond = expr();
+        expect(";");
+        node->ehs = expr();
+        expect(")");
+        node->then = stmt();
         return node;
     }
     else
