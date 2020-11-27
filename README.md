@@ -13,6 +13,8 @@ c compiler referring to [低レイヤを知りたい人のためのCコンパイ
 - 変数宣言&代入（型指定なし）
 - return 文
 - if else 文
+- while 文
+- for 文
 
 ## セルフコンパイルに向けて実装しなきゃいけない機能
 - ポインタ
