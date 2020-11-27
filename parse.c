@@ -331,7 +331,7 @@ Node *stmt()
         expect("(");
         node->cond = expr();
         expect(")");
-        node->then = stmt();
+        node->rhs = stmt();
         return node;
     }
     else
