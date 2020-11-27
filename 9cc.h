@@ -16,6 +16,7 @@ typedef enum
     TK_IF,       // if
     TK_ELSE,     // else
     TK_WHILE,    // while
+    TK_FOR,      // for
 } TokenKind;
 
 // トークン
@@ -47,6 +48,7 @@ typedef enum
     ND_IF,     // if
     ND_ELSE,   // else
     ND_WHILE,  // while
+    ND_FOR,    // for
 } NodeKind;
 
 // ローカル変数の型
@@ -68,10 +70,13 @@ struct Node
     Node *lhs; // 左辺
     Node *rhs; // 右辺
 
-    // if else用
+    // if else 用
     Node *cond;
     Node *then;
     Node *els;
+    // for (A;B;C) のAとC用
+    Node *fhs;
+    Node *ehs;
 
     int val;    // kindがND_NUMの場合にのみ使う
     int offset; // kindがND_LVARの場合のみ使う

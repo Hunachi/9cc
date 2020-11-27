@@ -16,6 +16,9 @@ assert() {
   fi
 }
 
+assert 5 "ho=0;for(i=0;i<5;i=i+1)ho=ho+1;return ho;"
+assert 11 "ho=1;for(i=0;i<5;i=i+1)ho=ho+i;return ho;"
+
 assert 5 "i=1;while(i<5)i=i+1;return i;"
 
 assert 5 "if(0 == 1) return 3; else return 5;"

@@ -177,6 +177,13 @@ Token *tokenize()
             continue;
         }
 
+        if (strncmp(p, "for", 3) == 0)
+        {
+            cur = new_token(TK_FOR, cur, p, 3);
+            p += 3;
+            continue;
+        }
+
         int local_var_count = 0;
         bool is_ident = false;
         char *hp = p;
@@ -300,7 +307,8 @@ void program()
 // stmt = expr ";" | return expr ";" |
 // "{" stmt "}"|
 // "if" "(" expr ")" stmt ("else" stmt)? |
-// "while" "(" expr ")" stmt
+// "while" "(" expr ")" stmt |
+// "for" "(" expr? ";" expr? ";" expr? ")" stmt
 Node *stmt()
 {
     Node *node;
@@ -331,7 +339,21 @@ Node *stmt()
         expect("(");
         node->cond = expr();
         expect(")");
-        node->rhs = stmt();
+        node->then = stmt();
+        return node;
+    }
+    else if (consume_tk(TK_FOR))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_FOR;
+        expect("(");
+        node->fhs = expr();
+        expect(";");
+        node->cond = expr();
+        expect(";");
+        node->ehs = expr();
+        expect(")");
+        node->then = stmt();
         return node;
     }
     else
